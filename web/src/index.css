@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg: #f5efe3;
+  --bg-deep: #efe4d2;
+  --ink: #29475a;
+  --ink-strong: #163447;
+  --muted: #5e7382;
+  --muted-strong: #7f5b33;
+  --accent: #b06432;
+  --font-body: 'Manrope', 'Segoe UI', sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(176, 100, 50, 0.12), transparent 28%),
+    radial-gradient(circle at top right, rgba(20, 61, 89, 0.16), transparent 34%),
+    linear-gradient(180deg, var(--bg), var(--bg-deep));
+  font: 17px/1.5 var(--font-body);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2 {
+  color: var(--ink-strong);
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+h1 {
+  font-size: clamp(2.8rem, 4vw, 4.9rem);
+  line-height: 0.96;
+}
+
+h2 {
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  line-height: 1.04;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
