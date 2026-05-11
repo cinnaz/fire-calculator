@@ -1,4 +1,4 @@
-export type CashFlowKind = 'income' | 'expense'
+export type CashFlowKind = 'income' | 'expense' | null
 
 export interface CashFlowItem {
   id: string
@@ -13,6 +13,7 @@ export interface CashFlowItem {
 export interface HousingPlan {
   enabled: boolean
   homePrice: number | null
+  hoaAnnualCost: number | null
   purchaseYear: number
   annualInterestRate: number
   mortgageTermYears: number
@@ -33,12 +34,17 @@ export interface Scenario {
   sourceSheet: string
   startingSnapshotLabel: string
   currentNetWorth: number | null
+  householdIncome: number | null
+  workState: string
+  incomeTaxRate: number | null
   startYear: number
   endYear: number
   investmentReturnRate: number
   incomeTaxBracketId: string
+  houseOwnershipPlan: 'yes' | 'no'
   goalNetWorth: number | null
   housing: HousingPlan
+  additionalHomes: HousingPlan[]
   cashFlowItems: CashFlowItem[]
 }
 

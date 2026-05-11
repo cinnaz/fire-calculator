@@ -64,59 +64,75 @@ export const calculateAnnualMortgage = (housing: HousingPlan) => {
 }
 
 export const deriveHousingItems = (housing: HousingPlan): CashFlowItem[] => {
-  const homePrice = housing.homePrice ?? 0
-
-  if (!housing.enabled || homePrice <= 0) {
+  if (!housing.enabled) {
     return []
   }
 
+  const homePrice = housing.homePrice ?? 0
   const annualMortgage = calculateAnnualMortgage(housing)
   const downPayment = homePrice * housing.downPaymentRate
   const closingCosts = homePrice * housing.closingCostRate
   const propertyTax = homePrice * housing.propertyTaxRate
+  const hoaAnnualCost = housing.hoaAnnualCost ?? 0
   const mortgageEndYear = housing.saleYear ?? housing.mortgageEndYear
   const propertyTaxEndYear = housing.saleYear ?? housing.propertyTaxEndYear
 
-  const items: CashFlowItem[] = [
-    {
-      id: 'housing-mortgage',
+  const items: CashFlowItem[] = []
+
+  if (homePrice > 0) {
+    items.push(
+      {
+        id: 'housing-mortgage',
+        kind: 'expense',
+        label: 'Yearly Mortgage',
+        preTaxAmount: null,
+        amount: annualMortgage,
+        startYear: housing.purchaseYear,
+        endYear: mortgageEndYear,
+      },
+      {
+        id: 'housing-down-payment',
+        kind: 'expense',
+        label: 'Down Payment',
+        preTaxAmount: null,
+        amount: downPayment,
+        startYear: housing.purchaseYear,
+        endYear: housing.purchaseYear,
+      },
+      {
+        id: 'housing-closing-costs',
+        kind: 'expense',
+        label: 'Closing costs',
+        preTaxAmount: null,
+        amount: closingCosts,
+        startYear: housing.purchaseYear,
+        endYear: housing.purchaseYear,
+      },
+      {
+        id: 'housing-property-tax',
+        kind: 'expense',
+        label: 'Property tax cost',
+        preTaxAmount: null,
+        amount: propertyTax,
+        startYear: housing.purchaseYear,
+        endYear: propertyTaxEndYear,
+      },
+    )
+  }
+
+  if (hoaAnnualCost > 0) {
+    items.push({
+      id: 'housing-hoa',
       kind: 'expense',
-      label: 'Yearly Mortgage',
+      label: 'HOA cost',
       preTaxAmount: null,
-      amount: annualMortgage,
-      startYear: housing.purchaseYear,
-      endYear: mortgageEndYear,
-    },
-    {
-      id: 'housing-down-payment',
-      kind: 'expense',
-      label: 'Down Payment',
-      preTaxAmount: null,
-      amount: downPayment,
-      startYear: housing.purchaseYear,
-      endYear: housing.purchaseYear,
-    },
-    {
-      id: 'housing-closing-costs',
-      kind: 'expense',
-      label: 'Closing costs',
-      preTaxAmount: null,
-      amount: closingCosts,
-      startYear: housing.purchaseYear,
-      endYear: housing.purchaseYear,
-    },
-    {
-      id: 'housing-property-tax',
-      kind: 'expense',
-      label: 'Property tax cost',
-      preTaxAmount: null,
-      amount: propertyTax,
+      amount: hoaAnnualCost,
       startYear: housing.purchaseYear,
       endYear: propertyTaxEndYear,
-    },
-  ]
+    })
+  }
 
-  if (housing.saleYear !== null) {
+  if (housing.saleYear !== null && homePrice > 0) {
     items.push({
       id: 'housing-sale',
       kind: 'income',
@@ -133,16 +149,29 @@ export const deriveHousingItems = (housing: HousingPlan): CashFlowItem[] => {
   )
 }
 
-export const collectAllCashFlowItems = (scenario: Scenario) => [
-  ...deriveHousingItems(scenario.housing),
-  ...scenario.cashFlowItems.filter(
-    (item) =>
-      (item.amount !== null || item.preTaxAmount !== null) &&
-      (item.amount === null || Number.isFinite(item.amount)) &&
-      (item.preTaxAmount === null || Number.isFinite(item.preTaxAmount)) &&
-      item.label.trim().length > 0,
-  ),
-]
+export const collectAllCashFlowItems = (scenario: Scenario) => {
+  const housingPlans = [scenario.housing, ...scenario.additionalHomes]
+  const hasMultipleHomes = housingPlans.length > 1
+  const housingItems = housingPlans.flatMap((housing, index) =>
+    deriveHousingItems(housing).map((item) => ({
+      ...item,
+      id: hasMultipleHomes ? `home-${index + 1}-${item.id}` : item.id,
+      label: hasMultipleHomes ? `Home ${index + 1}: ${item.label}` : item.label,
+    })),
+  )
+
+  return [
+    ...housingItems,
+    ...scenario.cashFlowItems.filter(
+      (item) =>
+        (item.kind === 'income' || item.kind === 'expense') &&
+        (item.amount !== null || item.preTaxAmount !== null) &&
+        (item.amount === null || Number.isFinite(item.amount)) &&
+        (item.preTaxAmount === null || Number.isFinite(item.preTaxAmount)) &&
+        item.label.trim().length > 0,
+    ),
+  ]
+}
 
 export const simulateScenario = (scenario: Scenario): SimulationResult => {
   const allCashFlowItems = collectAllCashFlowItems(scenario)
@@ -150,9 +179,13 @@ export const simulateScenario = (scenario: Scenario): SimulationResult => {
   let openingNetWorth = scenario.currentNetWorth ?? 0
   let retirementYear: number | null = null
   const incomeTaxRate =
+    scenario.incomeTaxRate ??
     incomeTaxBrackets.find(
       (bracket) => bracket.id === scenario.incomeTaxBracketId,
-    )?.totalTaxRate ?? incomeTaxBrackets.find((bracket) => bracket.id === DEFAULT_INCOME_TAX_BRACKET_ID)?.totalTaxRate ?? 0
+    )?.totalTaxRate ??
+    incomeTaxBrackets.find((bracket) => bracket.id === DEFAULT_INCOME_TAX_BRACKET_ID)
+      ?.totalTaxRate ??
+    0
 
   for (let year = scenario.startYear; year <= scenario.endYear; year += 1) {
     const expenses = roundTo(
